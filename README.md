@@ -85,3 +85,22 @@ In `src/main.cpp`:
 | `include/song.h`, `include/song_def.h` | Song data (provided) |
 | `lib/FreeRTOS` | FreeRTOS kernel V11.1.0 and `FreeRTOSConfig.h` |
 | `platformio.ini` | Board and framework settings |
+
+## Testing and Demo
+
+To verify that our MP3 player hardware and multi-threaded firmware work as expected, we tested each core feature in real time. The demo video below walks through selecting tracks using the 3-bit binary inputs (`000`–`111`), triggering the 5-second selection timeout, confirming a track, toggling play/pause, adjusting the volume, and checking that the status LEDs, LCD screen, and UART serial monitor update properly without freezing.
+
+### Demo Video
+https://drive.google.com/file/d/1TlXZdpgL6mWdoMecoKZXU907efR9ZTw8/view?usp=sharing
+
+### Feature Test Results
+
+| Feature Tested | Test Procedure / Description | Expected Behavior | Status |
+| :--- | :--- | :--- | :---: |
+| **Song Select (`000`–`111`)** | Cycled through all 8 binary input combinations (`000` to `111`). | LCD and system accurately preview the corresponding track (Songs 1–8). | ✅ PASS |
+| **5-Second Timeout** | Changed the song selection input and waited 5 seconds without pressing confirm. | Selection times out and reverts to the previous state/idle without switching tracks. | ✅ PASS |
+| **Confirm Selection** | Selected a binary track code and pressed the Confirm button within 5 seconds. | System locks in the chosen track and starts/loads playback. | ✅ PASS |
+| **Play / Pause** | Pressed the Play/Pause button during active playback and while paused. | Audio playback and system state smoothly toggle between Playing and Paused. | ✅ PASS |
+| **LED Colors** | Observed the RGB/status LEDs across Idle, Playing, Paused, and Selection states. | Correct LED color lights up to match each system state. | ✅ PASS |
+| **Volume Control** | Adjusted the volume input from minimum to maximum while a track was playing. | Audio output level scales smoothly and updates the current volume reading. | ✅ PASS |
+| **UART Logging** | Monitored the serial terminal while triggering inputs, timeouts, and state changes. | Clean debug/status messages print to the serial monitor at each event. | ✅ PASS |
