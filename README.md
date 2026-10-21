@@ -93,7 +93,8 @@ In `src/main.cpp`:
 To verify that our MP3 player hardware and multi-threaded firmware work as expected, we tested each core feature in real time. The demo video below walks through selecting tracks using the 3-bit binary inputs (`000`–`111`), triggering the 5-second selection timeout, confirming a track, toggling play/pause, adjusting the volume, and checking that the status LEDs, LCD screen, and UART serial monitor update properly without freezing.
 
 ### Demo Video
-https://drive.google.com/file/d/1TlXZdpgL6mWdoMecoKZXU907efR9ZTw8/view?usp=sharing
+
+[Show Demo Video](https://drive.google.com/file/d/1TlXZdpgL6mWdoMecoKZXU907efR9ZTw8/view?usp=sharing)
 
 ### Feature Test Results
 
