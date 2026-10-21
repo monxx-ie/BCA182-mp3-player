@@ -7,6 +7,19 @@ An MP3-style player on the **RT-Thread RT-Spark (STM32F407ZGT6)** board. It play
 - **Framework:** PlatformIO with the STM32Cube HAL (no Arduino)
 - **RTOS:** FreeRTOS with cooperative scheduling
 
+## Project overview
+
+This project implements a small embedded music player using the RT-Spark development board. Instead of using a complex display interface, the player relies on a combination of physical buttons, an LCD, RGB status LEDs, and UART debug output to create a simple but practical user experience.
+
+The system is designed to demonstrate the core ideas of embedded programming in a single application:
+
+- reading digital input from buttons and debouncing it in software
+- managing multiple tasks in FreeRTOS
+- using timers for note timing and timeout logic
+- controlling audio generation with the ES8388 codec and buzzer
+- reading an analog signal from a potentiometer for volume control
+- updating a graphical user interface on the ST7789 LCD
+
 ## Features
 
 - **Song selection:** pick one of 8 songs with 3 buttons in binary (B2 = MSB, B4 = LSB).
@@ -17,6 +30,35 @@ An MP3-style player on the **RT-Thread RT-Spark (STM32F407ZGT6)** board. It play
 - **UART:** usage instructions and the song list are sent at 115200 baud.
 - **Volume:** set with an external potentiometer.
 - **Sleep mode:** the CPU sleeps in the FreeRTOS idle hook.
+
+## How the system works
+
+### Song selection flow
+
+The user chooses a song by pressing three binary selector buttons. These inputs are treated as a 3-bit code, so the system can represent values from `000` to `111`, which correspond to songs 1 through 8.
+
+When a button combination is selected, the software updates the current preview value and shows it on the LCD. This lets the user preview the chosen track before committing to playback.
+
+### Confirmation step
+
+A song selection is not immediately activated. Instead, the player waits for a confirmation input within a 5-second window. If the user presses the confirm button again during this time, the system accepts the song and starts playback. If the timer expires, the selection is ignored and the system continues using the previous song state.
+
+This is important because it prevents accidental track switching when the buttons are pressed unintentionally or in quick succession.
+
+### Playback state machine
+
+The player uses a simple state-based design. The main states include:
+
+- idle / previous selection
+- song selected / awaiting confirm
+- playing
+- paused
+
+The play/pause button toggles the output state without resetting the song selection, making the player behave like a small music device rather than a one-shot demo.
+
+### Volume control
+
+The volume is adjusted with a potentiometer connected to ADC1. The firmware periodically reads this analog value and updates the audio gain. The LCD also shows the current level so the user can see the effect of the control in real time.
 
 ## Design
 
@@ -31,6 +73,7 @@ An MP3-style player on the **RT-Thread RT-Spark (STM32F407ZGT6)** board. It play
 
 - **Threads:** all 3 run at the same priority, each in an infinite loop that waits with `vTaskDelay()`.
 - **Ticker and Timeout:** mbed-style classes built on hardware timers.
+- **Embedded design pattern:** the firmware uses hardware timers and RTOS scheduling together so that the system remains responsive while generating audio notes on time.
 
 ## Wiring
 
@@ -72,6 +115,8 @@ In `src/main.cpp`:
 #define USE_SPEAKER 1   // 1 = onboard buzzer, 0 = 3.5 mm jack (speaker / headphones)
 ```
 
+This setting allows quick switching between the onboard buzzer and the external audio output path without changing the rest of the player logic.
+
 ## Build and flash
 
 1. Open the folder in VS Code with PlatformIO.
@@ -90,11 +135,62 @@ In `src/main.cpp`:
 
 ## Testing and Demo
 
-To verify that our MP3 player hardware and multi-threaded firmware work as expected, we tested each core feature in real time. The demo video below walks through selecting tracks using the 3-bit binary inputs (`000`–`111`), triggering the 5-second selection timeout, confirming a track, toggling play/pause, adjusting the volume, and checking that the status LEDs, LCD screen, and UART serial monitor update properly without freezing.
+To verify that the MP3 player hardware and multi-threaded firmware work as expected, several real-time tests were performed on the board. These tests focused on the main user interactions: song selection, confirmation timeout, playback control, LCD and LED behavior, audio output, and serial logging.
 
 ### Demo Video
 
 [Show Demo Video](https://drive.google.com/file/d/1TlXZdpgL6mWdoMecoKZXU907efR9ZTw8/view?usp=sharing)
+
+### Feature test trials
+
+#### Trial 1: Song selection and binary input validation
+- **Objective:** verify that all 8 binary song codes can be selected using the three selector buttons.
+- **Procedure:** cycle through binary inputs from `000` to `111` and observe the LCD and serial output.
+- **Expected result:** each code maps to the correct song preview and label.
+- **Result:** all 8 codes responded correctly, and the selected song updated on the display.
+- **Status:** ✅ PASS
+
+#### Trial 2: 5-second confirmation timeout
+- **Objective:** confirm the timeout logic rejects a selection if the user does not confirm within 5 seconds.
+- **Procedure:** change the selected song, then wait 5 seconds without pressing the confirm button.
+- **Expected result:** the system returns to its previous state without switching the active track.
+- **Result:** the original song remained active and the selection timed out as intended.
+- **Status:** ✅ PASS
+
+#### Trial 3: Confirm selection and playback start
+- **Objective:** validate that a confirmed selection begins playback properly.
+- **Procedure:** choose a song, press B1 to confirm, and observe the system response.
+- **Expected result:** the song loads and playback begins.
+- **Result:** the selected song started successfully and the status indicators updated accordingly.
+- **Status:** ✅ PASS
+
+#### Trial 4: Play / pause behavior
+- **Objective:** ensure the play/pause control works in both active and paused states.
+- **Procedure:** press the USER_BUTTON while the player is playing and while it is paused.
+- **Expected result:** the system switches between Playing and Paused without error.
+- **Result:** playback toggled smoothly and the LCD/LED state matched the action.
+- **Status:** ✅ PASS
+
+#### Trial 5: RGB LED status indication
+- **Objective:** verify that LED colors correctly reflect the current state.
+- **Procedure:** move through idle, selection, waiting-for-confirmation, playing, and paused states.
+- **Expected result:** blue = playing, red = paused, green = waiting for confirmation.
+- **Result:** each state produced the correct LED color quickly and consistently.
+- **Status:** ✅ PASS
+
+#### Trial 6: Volume control
+- **Objective:** test the potentiometer-based volume adjustment.
+- **Procedure:** rotate the potentiometer from minimum to maximum while a song is playing.
+- **Expected result:** sound level changes smoothly and the volume display updates.
+- **Result:** volume responded correctly across the full range with no instability.
+- **Status:** ✅ PASS
+
+#### Trial 7: UART logging
+- **Objective:** verify that system events are communicated through the serial terminal.
+- **Procedure:** trigger song selection, timeouts, and playback transitions while monitoring UART.
+- **Expected result:** each important event is printed with clear debug info at 115200 baud.
+- **Result:** UART logging was consistent and useful for verification and debugging.
+- **Status:** ✅ PASS
 
 ### Feature Test Results
 
@@ -107,3 +203,17 @@ To verify that our MP3 player hardware and multi-threaded firmware work as expec
 | **LED Colors** | Observed the RGB/status LEDs across Idle, Playing, Paused, and Selection states. | Correct LED color lights up to match each system state. | ✅ PASS |
 | **Volume Control** | Adjusted the volume input from minimum to maximum while a track was playing. | Audio output level scales smoothly and updates the current volume reading. | ✅ PASS |
 | **UART Logging** | Monitored the serial terminal while triggering inputs, timeouts, and state changes. | Clean debug/status messages print to the serial monitor at each event. | ✅ PASS |
+
+## Practical notes and troubleshooting
+
+- If the player does not respond, confirm that the correct firmware binary was copied to the RT-SPARK USB drive.
+- If no sound is heard, verify the `USE_SPEAKER` setting in `src/main.cpp` and check the audio output path.
+- If the LCD remains blank, confirm the FSMC wiring and display initialization settings.
+- If the buttons appear unstable, check the debounce code in `polling_buttons()` and the pull-up wiring.
+- If UART logs do not show up, verify the serial monitor is set to **115200 baud** and the correct port is selected.
+
+## Conclusion
+
+This MP3 player successfully combines embedded system design, timer-driven audio generation, LCD display control, and FreeRTOS scheduling in one practical project. It demonstrates how a small STM32-based board can implement a usable music player using simple physical inputs and state-based firmware logic.
+
+The system also shows a common embedded engineering workflow: hardware interconnection, software task design, state management, debugging via UART, and testing under real operating conditions.
