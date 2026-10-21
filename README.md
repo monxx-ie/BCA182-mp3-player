@@ -34,6 +34,8 @@ An MP3-style player on the **RT-Thread RT-Spark (STM32F407ZGT6)** board. It play
 
 ## Wiring
 
+[Show Wiring Diagram](Documentation/Wiring.png)
+
 All external parts connect to the 2x20 header.
 
 | Part | Pin | Connection |
