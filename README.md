@@ -7,9 +7,20 @@ An MP3-style player on the **RT-Thread RT-Spark (STM32F407ZGT6)** board. It play
 - **Framework:** PlatformIO with the STM32Cube HAL (no Arduino)
 - **RTOS:** FreeRTOS with cooperative scheduling
 
+## Team
+
+BCA182 Embedded Systems Programming, B187.1
+
+| Member | Role |
+|---|---|
+| Cassandra Khan P. Mendoza | Firmware (`main.cpp`), README |
+| Carl Hovan Chan | Hardware wiring and wiring diagram |
+| Sean Marie Rabago | Testing, demo video, documentation photos |
+| Shaqkobe Dos P. Tejada | System explanations and test trial documentation |
+
 ## Project overview
 
-This project implements a small embedded music player using the RT-Spark development board. Instead of using a complex display interface, the player relies on a combination of physical buttons, an LCD, RGB status LEDs, and UART debug output to create a simple but practical user experience.
+This project implements a small embedded music player on the RT-Spark development board. The user controls it with five push buttons and a potentiometer. The onboard LCD, an RGB status LED and the UART serial output show what the player is doing.
 
 The system is designed to demonstrate the core ideas of embedded programming in a single application:
 
@@ -37,7 +48,7 @@ The system is designed to demonstrate the core ideas of embedded programming in 
 
 The user chooses a song by pressing three binary selector buttons. These inputs are treated as a 3-bit code, so the system can represent values from `000` to `111`, which correspond to songs 1 through 8.
 
-When a button combination is selected, the software updates the current preview value and shows it on the LCD. This lets the user preview the chosen track before committing to playback.
+The user holds the combination on B2–B4 and presses B1. The firmware reads the three buttons at that moment, and the LCD shows the selected song's name with a "CHANGE SONG?" message and a countdown.
 
 ### Confirmation step
 
@@ -115,7 +126,7 @@ In `src/main.cpp`:
 #define USE_SPEAKER 1   // 1 = onboard buzzer, 0 = 3.5 mm jack (speaker / headphones)
 ```
 
-This setting allows quick switching between the onboard buzzer and the external audio output path without changing the rest of the player logic.
+The repository currently uses `1` (onboard buzzer). This setting allows quick switching between the onboard buzzer and the external audio output path without changing the rest of the player logic.
 
 ## Build and flash
 
@@ -145,8 +156,8 @@ To verify that the MP3 player hardware and multi-threaded firmware work as expec
 
 #### Trial 1: Song selection and binary input validation
 - **Objective:** verify that all 8 binary song codes can be selected using the three selector buttons.
-- **Procedure:** cycle through binary inputs from `000` to `111` and observe the LCD and serial output.
-- **Expected result:** each code maps to the correct song preview and label.
+- **Procedure:** for each code from `000` to `111`, hold the combination on B2–B4, press B1, and observe the LCD.
+- **Expected result:** each code shows the correct song name on the LCD.
 - **Result:** all 8 codes responded correctly, and the selected song updated on the display.
 - **Status:** ✅ PASS
 
@@ -185,32 +196,32 @@ To verify that the MP3 player hardware and multi-threaded firmware work as expec
 - **Result:** volume responded correctly across the full range with no instability.
 - **Status:** ✅ PASS
 
-#### Trial 7: UART logging
-- **Objective:** verify that system events are communicated through the serial terminal.
-- **Procedure:** trigger song selection, timeouts, and playback transitions while monitoring UART.
-- **Expected result:** each important event is printed with clear debug info at 115200 baud.
-- **Result:** UART logging was consistent and useful for verification and debugging.
+#### Trial 7: UART output
+- **Objective:** verify that the usage instructions and song confirmations are sent over UART.
+- **Procedure:** open the serial monitor at 115200 baud, press RESET, then select and confirm a song.
+- **Expected result:** the instructions and song list print at startup, and "Now playing: <song>" prints when a song is confirmed.
+- **Result:** the instructions, song list and "Now playing" message appeared as expected.
 - **Status:** ✅ PASS
 
 ### Feature Test Results
 
 | Feature Tested | Test Procedure / Description | Expected Behavior | Status |
 | :--- | :--- | :--- | :---: |
-| **Song Select (`000`–`111`)** | Cycled through all 8 binary input combinations (`000` to `111`). | LCD and system accurately preview the corresponding track (Songs 1–8). | ✅ PASS |
+| **Song Select (`000`–`111`)** | Selected each of the 8 binary combinations (`000` to `111`) with B1. | LCD shows the corresponding song (Songs 1–8). | ✅ PASS |
 | **5-Second Timeout** | Changed the song selection input and waited 5 seconds without pressing confirm. | Selection times out and reverts to the previous state/idle without switching tracks. | ✅ PASS |
 | **Confirm Selection** | Selected a binary track code and pressed the Confirm button within 5 seconds. | System locks in the chosen track and starts/loads playback. | ✅ PASS |
 | **Play / Pause** | Pressed the Play/Pause button during active playback and while paused. | Audio playback and system state smoothly toggle between Playing and Paused. | ✅ PASS |
 | **LED Colors** | Observed the RGB/status LEDs across Idle, Playing, Paused, and Selection states. | Correct LED color lights up to match each system state. | ✅ PASS |
 | **Volume Control** | Adjusted the volume input from minimum to maximum while a track was playing. | Audio output level scales smoothly and updates the current volume reading. | ✅ PASS |
-| **UART Logging** | Monitored the serial terminal while triggering inputs, timeouts, and state changes. | Clean debug/status messages print to the serial monitor at each event. | ✅ PASS |
+| **UART Output** | Opened the serial monitor at 115200 baud, reset the board, then confirmed a song. | Instructions and song list print at startup; "Now playing: <song>" prints on confirm. | ✅ PASS |
 
 ## Practical notes and troubleshooting
 
 - If the player does not respond, confirm that the correct firmware binary was copied to the RT-SPARK USB drive.
 - If no sound is heard, verify the `USE_SPEAKER` setting in `src/main.cpp` and check the audio output path.
-- If the LCD remains blank, confirm the FSMC wiring and display initialization settings.
-- If the buttons appear unstable, check the debounce code in `polling_buttons()` and the pull-up wiring.
-- If UART logs do not show up, verify the serial monitor is set to **115200 baud** and the correct port is selected.
+- If the LCD stays blank, press RESET and check that the new firmware was copied. If the colours look inverted, change `0x21` to `0x20` in `init_lcd()`.
+- If a button does nothing, check that it straddles the breadboard's centre gap and that its other leg goes to GND.
+- If the UART output does not show up, set the serial monitor to **115200 baud** and select the correct port, then press RESET.
 
 ## Conclusion
 
