@@ -90,6 +90,8 @@ The volume is adjusted with a potentiometer connected to ADC1. The firmware peri
 
 [Show Wiring Diagram](Documentation/Wiring.png)
 
+[Show Live Wiring Photos](Documentation/live-wiring.md)
+
 All external parts connect to the 2x20 header.
 
 | Part | Pin | Connection |
